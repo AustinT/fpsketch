@@ -32,7 +32,7 @@ def test_matches_hashlib_reference_distributionally():
     new_dots, ref_dots = [], []
     new_sq, ref_sq = [], []
     for seed in SEEDS:
-        new = encode_sparse(_FPS, m=M, num_blocks=NUM_BLOCKS, seed=seed)
+        new = encode_sparse(_FPS, dim=M, num_blocks=NUM_BLOCKS, seed=seed)
         ref = encode_sparse_hashlib(_FPS, m=M, num_blocks=NUM_BLOCKS, seed=seed)
 
         new_dots.append(float(new[0] @ new[1]))

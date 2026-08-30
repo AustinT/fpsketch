@@ -47,7 +47,7 @@ from fpsketch import encode_sparse
 
 # Sparse count fingerprints you already have.
 fps = [{1: 1, 2: 2, 3: 3}, {4: 4, 5: 5, 6: 6}]
-sketch = encode_sparse(fps, m=2048, seed=0)
+sketch = encode_sparse(fps, dim=2048, seed=0)
 
 # T_DP as a plain dot product / normalized similarity.
 G = sketch @ sketch.T
@@ -60,21 +60,44 @@ from rdkit import Chem
 from fpsketch import encode_mols
 
 mols = [Chem.MolFromSmiles(s) for s in smiles_list]
-sketch = encode_mols(mols, m=2048, seed=0)  # defaults to a Morgan(radius=2) generator
+sketch = encode_mols(mols, dim=2048, seed=0)  # defaults to a Morgan(radius=2) generator
+```
+
+If you already have your counts vectorized as a COO sparse array (molecules x
+features), `encode_coo` skips the per-molecule dict traversal `encode_sparse`
+does internally:
+
+```python
+from scipy.sparse import coo_array
+from fpsketch import encode_coo
+
+counts = coo_array(...)  # shape (n_molecules, n_features)
+sketch = encode_coo(counts, dim=2048, seed=0)
 ```
 
 Two sketches are only comparable if built with the same `seed`.
 
-## Choosing `m` and `num_blocks`
+## Choosing `dim` and `num_blocks`
 
-`m=2048` is a strong default -- at that width the sketch already beats the
+`dim=2048` is a strong default -- at that width the sketch already beats the
 best possible elementwise approximation of `T_MM`. For extra safety margin,
-`m` at 2-4x the fingerprint's effective (unfolded) dimension is a reasonable
-range to sweep. `num_blocks` (default 4) splits `m` into that many disjoint
+`dim` at 2-4x the fingerprint's effective (unfolded) dimension is a reasonable
+range to sweep. `num_blocks` (default 4) splits `dim` into that many disjoint
 sub-sketches averaged together; it trades a small amount of raw accuracy for
 better tail concentration across single-draw sketches, which matters when a
 sketch is computed once and fed straight into a downstream model (e.g. a GP)
 rather than averaged over many random seeds.
+
+## The `scale` parameter
+
+By default (`scale=True`), the output is divided by `sqrt(num_blocks)` so
+that raw dot products and squared norms directly approximate the true,
+unnormalized dot product / count mass of the original fingerprints -- useful
+if you compare sketches built with different `num_blocks`, or use the sketch
+for anything beyond the `T_DP` ratio above (cosine similarity, nearest
+neighbors on raw dot product, etc). That factor cancels out of the `T_DP`
+ratio itself, so if you only ever compute Tanimoto similarity through that
+ratio, `scale=False` is equivalent and skips one pass over the output array.
 
 ## Performance note
 

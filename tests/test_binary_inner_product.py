@@ -22,7 +22,7 @@ def test_binary_dot_product_unbiased_over_seeds():
 
     dots = []
     for seed in range(200):
-        out = encode_sparse(fps, m=64, seed=seed)
+        out = encode_sparse(fps, dim=64, seed=seed)
         dots.append(float(out[0] @ out[1]))
 
     mean_dot = np.mean(dots)
@@ -34,7 +34,7 @@ def test_binary_pairwise_mae():
     d, n, nnz = 2000, 50, 30
     fps = [{int(i): 1 for i in rng.choice(d, size=nnz, replace=False)} for _ in range(n)]
 
-    sketch = encode_sparse(fps, m=4096, num_blocks=4, seed=0)
+    sketch = encode_sparse(fps, dim=4096, num_blocks=4, seed=0)
     k_hat = t_dp(sketch)
 
     k_true = np.array([[t_mm_dict(a, b) for b in fps] for a in fps])

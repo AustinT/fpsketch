@@ -2,6 +2,7 @@ import sys
 
 import numpy as np
 import pytest
+from _reference import t_dp
 
 from fpsketch import encode_sparse
 
@@ -12,7 +13,7 @@ def test_shape_and_l1_norm_matches_count_mass():
         {4: 4, 5: 5, 6: 6},
     ]
     m = 512
-    out = encode_sparse(fps, m=m, seed=0)
+    out = encode_sparse(fps, dim=m, seed=0)
     assert out.shape == (len(fps), m)
 
     sq_norms = (out**2).sum(axis=1)
@@ -21,48 +22,48 @@ def test_shape_and_l1_norm_matches_count_mass():
 
 def test_deterministic_given_same_seed():
     fps = [{1: 1, 2: 2, 3: 3}]
-    a = encode_sparse(fps, m=64, seed=42)
-    b = encode_sparse(fps, m=64, seed=42)
+    a = encode_sparse(fps, dim=64, seed=42)
+    b = encode_sparse(fps, dim=64, seed=42)
     assert np.array_equal(a, b)
 
 
 def test_different_seeds_give_different_output():
     fps = [{1: 1, 2: 2, 3: 3}]
-    a = encode_sparse(fps, m=64, seed=0)
-    b = encode_sparse(fps, m=64, seed=1)
+    a = encode_sparse(fps, dim=64, seed=0)
+    b = encode_sparse(fps, dim=64, seed=1)
     assert not np.array_equal(a, b)
 
 
 def test_num_blocks_exposed_and_respected():
     fps = [{1: 1, 2: 2, 3: 3}]
-    a = encode_sparse(fps, m=64, num_blocks=1, seed=0)
-    b = encode_sparse(fps, m=64, num_blocks=8, seed=0)
+    a = encode_sparse(fps, dim=64, num_blocks=1, seed=0)
+    b = encode_sparse(fps, dim=64, num_blocks=8, seed=0)
     assert a.shape == b.shape == (1, 64)
     assert not np.array_equal(a, b)
 
 
-def test_num_blocks_greater_than_m_raises():
+def test_num_blocks_greater_than_dim_raises():
     with pytest.raises(ValueError):
-        encode_sparse([{1: 1}], m=4, num_blocks=8, seed=0)
+        encode_sparse([{1: 1}], dim=4, num_blocks=8, seed=0)
 
 
 def test_empty_fingerprint_gives_zero_row():
-    out = encode_sparse([{}], m=16, seed=0)
+    out = encode_sparse([{}], dim=16, seed=0)
     assert out.shape == (1, 16)
     assert np.array_equal(out, np.zeros((1, 16)))
 
 
 def test_output_dtype_is_float64():
-    out = encode_sparse([{1: 1, 2: 2}], m=16, seed=0)
+    out = encode_sparse([{1: 1, 2: 2}], dim=16, seed=0)
     assert out.dtype == np.float64
 
 
 def test_non_divisor_num_blocks_gives_correct_shape_and_norms():
-    # m=1000, num_blocks=3 -> block lengths 333/333/334. Catches any
+    # dim=1000, num_blocks=3 -> block lengths 333/333/334. Catches any
     # accidental power-of-two or exact-divisibility assumption in the
     # block-boundary arithmetic (see PLAN-vectorized-sketch.md Step D).
     fps = [{1: 1, 2: 2, 3: 3}, {4: 4, 5: 5, 6: 6}]
-    out = encode_sparse(fps, m=1000, num_blocks=3, seed=0)
+    out = encode_sparse(fps, dim=1000, num_blocks=3, seed=0)
     assert out.shape == (2, 1000)
 
     sq_norms = (out**2).sum(axis=1)
@@ -75,7 +76,7 @@ def test_large_feature_ids_supported():
     # noted in PLAN-vectorized-sketch.md, which packed level bits into the id
     # and so capped ids at 2**56).
     fps = [{2**32 + 5: 2, 2**63 + 7: 3}]
-    out = encode_sparse(fps, m=64, seed=0)
+    out = encode_sparse(fps, dim=64, seed=0)
     assert out.shape == (1, 64)
     assert np.isfinite(out).all()
     # Loose sanity bound, not a variance check (nnz=5 is too small a sample
@@ -92,7 +93,7 @@ def test_encode_sparse_matches_pinned_golden_output():
     # legitimately needs to change (e.g. HASH_VERSION bump), regenerate it
     # deliberately -- don't just update it to make a failure go away.
     fps = [{1: 1, 2: 2, 3: 3}, {4: 1}]
-    out = encode_sparse(fps, m=12, num_blocks=4, seed=42)
+    out = encode_sparse(fps, dim=12, num_blocks=4, seed=42)
     expected = np.array(
         [
             [0.5, -0.5, 0.0, -0.5, 1.0, 0.5, 0.0, 1.0, 0.0, 1.0, 0.5, 0.5],
@@ -100,6 +101,22 @@ def test_encode_sparse_matches_pinned_golden_output():
         ]
     )
     assert np.array_equal(out, expected)
+
+
+def test_scale_false_skips_sqrt_num_blocks_division():
+    fps = [{1: 1, 2: 2, 3: 3}, {4: 1}]
+    scaled = encode_sparse(fps, dim=64, num_blocks=4, seed=0, scale=True)
+    unscaled = encode_sparse(fps, dim=64, num_blocks=4, seed=0, scale=False)
+    assert np.array_equal(scaled, unscaled / np.sqrt(4))
+
+
+def test_scale_does_not_affect_t_dp_ratio():
+    # scale rescales every output element by the same constant, so it cancels
+    # out of T_DP's ratio -- Tanimoto-only callers can safely set scale=False.
+    fps = [{1: 1, 2: 2, 3: 3}, {4: 4, 5: 5, 6: 6}, {1: 1, 4: 2}]
+    scaled = encode_sparse(fps, dim=256, num_blocks=4, seed=0, scale=True)
+    unscaled = encode_sparse(fps, dim=256, num_blocks=4, seed=0, scale=False)
+    assert np.allclose(t_dp(scaled), t_dp(unscaled))
 
 
 def test_encode_mols_missing_rdkit_raises_helpful_import_error(monkeypatch):
@@ -110,4 +127,4 @@ def test_encode_mols_missing_rdkit_raises_helpful_import_error(monkeypatch):
     from fpsketch import encode_mols
 
     with pytest.raises(ImportError, match="fpsketch\\[chem\\]"):
-        encode_mols([object()], m=16)
+        encode_mols([object()], dim=16)

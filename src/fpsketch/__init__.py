@@ -3,10 +3,11 @@ while preserving Tanimoto (T_MM) similarity as a plain dot product.
 """
 
 from .mols import encode_mols
-from .sketching import encode_sparse
+from .sketching import encode_coo, encode_sparse
 
 __all__ = [
     "encode_sparse",
+    "encode_coo",
     "encode_mols",
 ]
 

@@ -44,7 +44,7 @@ def t_dp(X: np.ndarray) -> np.ndarray:
 def main() -> None:
     mols = [Chem.MolFromSmiles(s) for s in SMILES]
 
-    sketch = encode_mols(mols, m=2048, seed=0)
+    sketch = encode_mols(mols, dim=2048, seed=0)
     k_hat = t_dp(sketch)
 
     generator = rdFingerprintGenerator.GetMorganGenerator(radius=2)

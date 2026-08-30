@@ -13,11 +13,12 @@ from .sketching import encode_sparse
 def encode_mols(
     mols: Sequence[Any],
     generator: Any | None = None,
-    m: int = 2048,
+    dim: int = 2048,
     num_blocks: int = 4,
     seed: int = 0,
+    scale: bool = True,
 ) -> np.ndarray:
-    """Sketch RDKit molecules into a dense ``(len(mols), m)`` array.
+    """Sketch RDKit molecules into a dense ``(len(mols), dim)`` array.
 
     Args:
         mols: RDKit ``ROMol`` objects.
@@ -25,10 +26,11 @@ def encode_mols(
             AtomPair, TopologicalTorsion, ...). Defaults to
             ``GetMorganGenerator(radius=2)`` if not given. Any generator
             exposing ``GetSparseCountFingerprint`` works.
-        m: output sketch width.
+        dim: output sketch width.
         num_blocks: see ``encode_sparse``.
         seed: hash seed; two sketches are only dot-product-comparable if built
             with the same seed.
+        scale: see ``encode_sparse``.
     """
     try:
         from rdkit.Chem import rdFingerprintGenerator
@@ -41,4 +43,4 @@ def encode_mols(
         generator = rdFingerprintGenerator.GetMorganGenerator(radius=2)
 
     fps = [generator.GetSparseCountFingerprint(mol).GetNonzeroElements() for mol in mols]
-    return encode_sparse(fps, m=m, num_blocks=num_blocks, seed=seed)
+    return encode_sparse(fps, dim=dim, num_blocks=num_blocks, seed=seed, scale=scale)

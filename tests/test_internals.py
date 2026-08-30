@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from fpsketch._splitmix import GAMMA, _splitmix64_hash
-from fpsketch.sketching import _subkeys, _unary_triples
+from fpsketch.sketching import _coo_from_fps, _subkeys, _unary_expand
 
 
 def test_subkeys_returns_distinct_uint64_values():
@@ -60,32 +60,55 @@ def test_splitmix64_hash_dtype_is_uint64():
     assert result.dtype == np.uint64
 
 
-def test_unary_triples_empty_input_gives_empty_arrays():
-    rows, ids, levels = _unary_triples([])
+def test_coo_from_fps_empty_input_gives_empty_arrays():
+    rows, ids, counts = _coo_from_fps([])
+    assert len(rows) == len(ids) == len(counts) == 0
+    assert rows.dtype == np.int64
+    assert ids.dtype == np.uint64
+    assert counts.dtype == np.int64
+
+
+def test_coo_from_fps_all_empty_fingerprints_gives_empty_arrays():
+    rows, ids, counts = _coo_from_fps([{}, {}])
+    assert len(rows) == len(ids) == len(counts) == 0
+
+
+def test_coo_from_fps_drops_zero_and_negative_counts():
+    rows, ids, counts = _coo_from_fps([{1: 0, 2: -3, 3: 2}])
+    assert rows.tolist() == [0]
+    assert ids.tolist() == [3]
+    assert counts.tolist() == [2]
+
+
+def test_coo_from_fps_dtype_and_shape():
+    rows, ids, counts = _coo_from_fps([{7: 2, 9: 1}, {}, {4: 3}])
+    assert rows.dtype == np.int64
+    assert ids.dtype == np.uint64
+    assert counts.dtype == np.int64
+    assert len(rows) == len(ids) == len(counts) == 3
+
+
+def test_unary_expand_empty_input_gives_empty_arrays():
+    rows, ids, levels = _unary_expand(*_coo_from_fps([]))
     assert len(rows) == len(ids) == len(levels) == 0
     assert rows.dtype == np.int64
     assert ids.dtype == np.uint64
     assert levels.dtype == np.uint64
 
 
-def test_unary_triples_all_empty_fingerprints_gives_empty_arrays():
-    rows, ids, levels = _unary_triples([{}, {}])
-    assert len(rows) == len(ids) == len(levels) == 0
-
-
-def test_unary_triples_drops_zero_and_negative_counts():
-    rows, ids, levels = _unary_triples([{1: 0, 2: -3, 3: 2}])
-    assert rows.tolist() == [0, 0]
-    assert ids.tolist() == [3, 3]
-    assert levels.tolist() == [0, 1]
-
-
-def test_unary_triples_dtype_and_shape():
-    rows, ids, levels = _unary_triples([{7: 2, 9: 1}, {}, {4: 3}])
+def test_unary_expand_dtype_and_shape():
+    rows, ids, levels = _unary_expand(*_coo_from_fps([{7: 2, 9: 1}, {}, {4: 3}]))
     assert rows.dtype == np.int64
     assert ids.dtype == np.uint64
     assert levels.dtype == np.uint64
     assert len(rows) == len(ids) == len(levels) == 6
+
+
+def test_unary_expand_matches_expected_levels():
+    rows, ids, levels = _unary_expand(*_coo_from_fps([{7: 2, 9: 1}, {}, {4: 3}]))
+    assert rows.tolist() == [0, 0, 0, 2, 2, 2]
+    assert ids.tolist() == [7, 7, 9, 4, 4, 4]
+    assert levels.tolist() == [0, 1, 0, 0, 1, 2]
 
 
 def test_hash_quality_buckets_and_signs_well_mixed():

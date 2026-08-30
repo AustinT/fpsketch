@@ -38,7 +38,7 @@ def test_encode_sparse_matches_rdkit_tanimoto(mols):
     k_true = np.array([DataStructs.BulkTanimotoSimilarity(fp, fps) for fp in fps])
 
     dicts = [fp.GetNonzeroElements() for fp in fps]
-    sketch = encode_sparse(dicts, m=M, seed=SEED)
+    sketch = encode_sparse(dicts, dim=M, seed=SEED)
     k_hat = t_dp(sketch)
 
     iu = np.triu_indices(len(mols), k=1)
@@ -56,8 +56,8 @@ def test_encode_mols_matches_encode_sparse(mols):
     generator = rdFingerprintGenerator.GetMorganGenerator(radius=2)
     dicts = [generator.GetSparseCountFingerprint(m).GetNonzeroElements() for m in mols]
 
-    via_encode_sparse = encode_sparse(dicts, m=M, seed=SEED)
-    via_encode_mols = encode_mols(mols, m=M, seed=SEED)
+    via_encode_sparse = encode_sparse(dicts, dim=M, seed=SEED)
+    via_encode_mols = encode_mols(mols, dim=M, seed=SEED)
 
     assert np.array_equal(via_encode_sparse, via_encode_mols)
 
@@ -66,8 +66,8 @@ def test_encode_mols_accepts_custom_generator(mols):
     subset = mols[:20]
     ap_generator = rdFingerprintGenerator.GetAtomPairGenerator()
 
-    out_default = encode_mols(subset, m=256, seed=SEED)
-    out_atompair = encode_mols(subset, generator=ap_generator, m=256, seed=SEED)
+    out_default = encode_mols(subset, dim=256, seed=SEED)
+    out_atompair = encode_mols(subset, generator=ap_generator, dim=256, seed=SEED)
 
     assert out_default.shape == out_atompair.shape == (20, 256)
     assert not np.array_equal(out_default, out_atompair)
