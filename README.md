@@ -25,12 +25,12 @@ original fingerprints.
 
 ## Why this works
 
-A "thermometer" (unary) encoding turns each count into a set of indicators,
+A unary encoding turns each count into a set of indicators,
 `psi(x)_{i,k} = 1[x_i > k]` for `k = 0 .. x_i - 1`. Since
 `min(u, v) = sum_k 1[u > k] * 1[v > k]`, this makes `T_DP(psi(x), psi(x'))`
 exactly equal to `T_MM(x, x')` -- no approximation yet, just a reformulation.
 fpsketch then applies a CountSketch (hashing each `(feature_id, level)` pair
-into one of `m` signed buckets) to that thermometer expansion, which keeps the
+into one of `m` signed buckets) to that unary expansion, which keeps the
 dot product unbiased while collapsing it to a fixed, low dimension.
 
 ## Install

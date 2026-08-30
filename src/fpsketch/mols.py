@@ -15,7 +15,7 @@ def encode_mols(
     generator: Any | None = None,
     m: int = 2048,
     num_blocks: int = 4,
-    seed: int | str | bytes = 0,
+    seed: int = 0,
 ) -> np.ndarray:
     """Sketch RDKit molecules into a dense ``(len(mols), m)`` array.
 
