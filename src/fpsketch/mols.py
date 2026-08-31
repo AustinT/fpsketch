@@ -12,8 +12,8 @@ from .sketching import encode_sparse
 
 def encode_mols(
     mols: Sequence[Any],
-    generator: Any | None = None,
     dim: int = 2048,
+    generator: Any | None = None,
     num_blocks: int = 4,
     seed: int = 0,
     scale: bool = True,
@@ -22,11 +22,11 @@ def encode_mols(
 
     Args:
         mols: RDKit ``ROMol`` objects.
+        dim: output sketch width.
         generator: an ``rdFingerprintGenerator`` generator (Morgan, RDKitFP,
             AtomPair, TopologicalTorsion, ...). Defaults to
             ``GetMorganGenerator(radius=2)`` if not given. Any generator
             exposing ``GetSparseCountFingerprint`` works.
-        dim: output sketch width.
         num_blocks: see ``encode_sparse``.
         seed: hash seed; two sketches are only dot-product-comparable if built
             with the same seed.

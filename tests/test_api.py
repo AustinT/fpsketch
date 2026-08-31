@@ -47,6 +47,16 @@ def test_num_blocks_greater_than_dim_raises():
         encode_sparse([{1: 1}], dim=4, num_blocks=8, seed=0)
 
 
+def test_num_blocks_less_than_one_raises():
+    with pytest.raises(ValueError):
+        encode_sparse([{1: 1}], dim=4, num_blocks=0, seed=0)
+
+
+def test_encode_sparse_rejects_negative_feature_ids():
+    with pytest.raises(ValueError):
+        encode_sparse([{-1: 1}], dim=16, seed=0)
+
+
 def test_empty_fingerprint_gives_zero_row():
     out = encode_sparse([{}], dim=16, seed=0)
     assert out.shape == (1, 16)

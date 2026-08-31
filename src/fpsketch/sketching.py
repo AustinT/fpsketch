@@ -60,7 +60,8 @@ def _coo_from_fps(
 
     Args:
         fps: one ``{feature_id: count}`` mapping per molecule. Feature ids must be
-            non-negative; entries with a count of zero or less are dropped.
+            non-negative (raises ``ValueError`` otherwise); entries with a count
+            of zero or less are dropped.
 
     Returns:
         Three parallel 1-D arrays, each of length ``nnz`` (the number of
@@ -83,6 +84,12 @@ def _coo_from_fps(
     for row, fp in enumerate(fps):
         if not fp:
             continue
+        min_id = min(fp)
+        if min_id < 0:
+            raise ValueError(
+                "encode_sparse: feature ids must be non-negative; got "
+                f"{min_id!r} in fingerprint at index {row}."
+            )
         feat_chunks.append(np.fromiter(fp.keys(), dtype=U64, count=len(fp)))
         count_chunks.append(np.fromiter(fp.values(), dtype=np.int64, count=len(fp)))
         row_chunks.append(np.full(len(fp), row, dtype=np.int64))
@@ -186,12 +193,14 @@ def encode_sparse(
 
     Args:
         fps: one ``{feature_id: count}`` mapping per molecule (e.g. RDKit's
-            ``GetSparseCountFingerprint(mol).GetNonzeroElements()``).
+            ``GetSparseCountFingerprint(mol).GetNonzeroElements()``). Feature
+            ids must be non-negative; entries with a count of zero or less
+            are dropped.
         dim: output sketch width.
         num_blocks: number of disjoint sparse-JL blocks to split ``dim`` into.
             More blocks trade a small amount of dot-product accuracy for
             better tail concentration; the default of 4 is a reasonable
-            general-purpose choice.
+            general-purpose choice. Must be at least 1 and at most ``dim``.
         seed: hash seed; two sketches are only dot-product-comparable if built
             with the same seed.
         scale: if True (default), divide the output by ``sqrt(num_blocks)`` so
@@ -287,8 +296,8 @@ def _encode_core(
         n_rows: number of molecules (the output's first dimension).
         dim, num_blocks, seed, scale: see ``encode_sparse``.
     """
-    if num_blocks > dim:
-        raise ValueError("Must have dim >= num_blocks")
+    if num_blocks < 1 or num_blocks > dim:
+        raise ValueError(f"num_blocks must be between 1 and dim (dim={dim}); got {num_blocks}")
 
     # Step 0: Transform data to vectorized format.
     # These are 1D arrays; shape is nnz in the dataset.

@@ -59,7 +59,7 @@ similarity = G / (sq[:, None] + sq[None, :] - G)
 from rdkit import Chem
 from fpsketch import encode_mols
 
-mols = [Chem.MolFromSmiles(s) for s in smiles_list]
+mols = [Chem.MolFromSmiles(s) for s in ["CCO"]]  # your list of SMILES strings
 sketch = encode_mols(mols, dim=2048, seed=0)  # defaults to a Morgan(radius=2) generator
 ```
 
@@ -79,14 +79,15 @@ Two sketches are only comparable if built with the same `seed`.
 
 ## Choosing `dim` and `num_blocks`
 
-`dim=2048` is a strong default -- at that width the sketch already beats the
-best possible elementwise approximation of `T_MM`. For extra safety margin,
-`dim` at 2-4x the fingerprint's effective (unfolded) dimension is a reasonable
-range to sweep. `num_blocks` (default 4) splits `dim` into that many disjoint
-sub-sketches averaged together; it trades a small amount of raw accuracy for
-better tail concentration across single-draw sketches, which matters when a
-sketch is computed once and fed straight into a downstream model (e.g. a GP)
-rather than averaged over many random seeds.
+`dim=2048` is a strong default for typical fingerprint settings. For extra
+safety margin, `dim` at 2-4x the fingerprint's effective (unfolded) dimension
+is a reasonable range to sweep. `num_blocks` (default 4) splits `dim` into
+that many disjoint sub-sketches, each an independent CountSketch; a dot
+product on the concatenated output is equivalent to averaging the
+`num_blocks` per-block dot-product estimates. This trades a small amount of
+raw accuracy for better tail concentration across single-draw sketches, which
+matters when a sketch is computed once and fed straight into a downstream
+model (e.g. a GP) rather than averaged over many random seeds.
 
 ## The `scale` parameter
 
