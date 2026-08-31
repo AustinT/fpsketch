@@ -170,7 +170,7 @@ def _subkeys(seed: int, n: int) -> np.ndarray:
         >>> len(keys) == len(set(keys.tolist()))
         True
     """
-    seed_as_bytes =  struct.pack("<q", seed)
+    seed_as_bytes = struct.pack("<q", seed)
     digest = hashlib.shake_256(seed_as_bytes).digest(8 * n)
     return np.frombuffer(digest, dtype="<u8").copy()
 
@@ -305,7 +305,7 @@ def _encode_core(
     # guarantee that feature_ids are uniformly distributed across
     # 64 bits (they could be a hand constructed fingerprint with ids 0, 1, 2, etc).
     # We apply splitmix once to hopefully disperse them uniformly
-    fp_keys = _splitmix64_hash(feature_ids)  # maps feature_ids 
+    fp_keys = _splitmix64_hash(feature_ids)  # maps feature_ids
 
     # Step 1b: add an offset from count_levels. The scaling constant
     # SPLITMIX64_GAMMA is a canonical shift constant from the splitmix
@@ -314,7 +314,7 @@ def _encode_core(
     # to different bits (unless counts are > 2^64, which is not actually supported).
     # We ignore overflow errors because overflow is intended (technically it should
     # be addition mod 2^64, but overflow handles this for us).
-    # 
+    #
     # After this step, we consider the (feature_id, count_level) pairs to
     # be jointly hashed and no longer refer to these features individually.
     with np.errstate(over="ignore"):
@@ -329,7 +329,6 @@ def _encode_core(
     # Main loop over blocks: we will now separately fill in each block
     standard_block_length = dim // num_blocks  # round down, last block will get remainder
     for block_idx in range(num_blocks):
-
         # Get block start and end indices
         block_start = block_idx * standard_block_length
         this_block_length = standard_block_length

@@ -101,10 +101,9 @@ ratio, `scale=False` is equivalent and skips one pass over the output array.
 
 ## Performance note
 
-The current implementation prioritizes correctness over speed: it hashes one
-`(feature, count-level)` pair at a time with `hashlib.blake2b`. A vectorized
-rewrite is a known, deliberate follow-up -- not yet done. Expect on the order
-of tens of milliseconds per molecule today.
+Hashing is vectorized with numpy (a pure-numpy splitmix64 mixer, not
+`hashlib` per element) rather than hashing one `(feature, count-level)` pair
+at a time -- see `src/fpsketch/sketching.py` for details.
 
 ## Development
 
@@ -113,7 +112,18 @@ uv sync --extra chem
 uv run pytest
 uv run ruff check .
 uv run ruff format .
+uv run mypy src
+uv run pre-commit install  # run the above automatically on each commit
 ```
+
+## Releasing
+
+Versions are derived from git tags (`hatch-vcs`); there is no version to bump
+by hand. Pushing a tag matching `v*` (e.g. `v0.2.0`) triggers
+`.github/workflows/publish.yml`, which builds and publishes to PyPI via
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) -- no API
+token needed, but the `pypi` environment must be configured as a trusted
+publisher for this repo in the PyPI project settings first.
 
 ## License
 

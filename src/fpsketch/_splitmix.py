@@ -24,5 +24,5 @@ def _splitmix64_hash(x: np.ndarray) -> np.ndarray:
         z = x + GAMMA
         z = (z ^ (z >> U64(30))) * MIX_A
         z = (z ^ (z >> U64(27))) * MIX_B
-        z = (z ^ (z >> U64(31)))
+        z = z ^ (z >> U64(31))
     return z

@@ -1,13 +1,28 @@
 [project]
 name = "fpsketch"
-version = "0.1.0"
+authors = [
+    {name = "Austin Tripp"},
+]
 description = "Compress molecular count fingerprints to a fixed low dimension while preserving Tanimoto similarity as a plain dot product."
+keywords = ["cheminformatics", "fingerprint", "sketching", "tanimoto", "johnson-lindenstrauss"]
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+dynamic = ["version"]  # version is set from git tags, see [tool.hatch.version]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
 dependencies = [
     "numpy>=1.24",
 ]
+
+[project.urls]
+Homepage = "https://github.com/AustinT/fpsketch"
+Repository = "https://github.com/AustinT/fpsketch"
 
 [project.optional-dependencies]
 chem = ["rdkit>=2023.9"]
@@ -17,14 +32,22 @@ dev = [
     "pytest>=7.0",
     "rdkit>=2023.9",
     "ruff>=0.6",
+    "mypy>=1.11",
+    "pre-commit>=3.8",
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fpsketch"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"  # PyPI rejects local version segments (e.g. +dirty)
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -39,3 +62,27 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["fpsketch"]
+
+[tool.mypy]
+# Pinned to 3.12 (not requires-python's 3.10 floor): numpy's bundled stubs use
+# unconditional PEP 695 `type` aliases that mypy can only parse when targeting
+# >=3.12, regardless of what our own source uses. Our code doesn't use any
+# 3.11+-only syntax, so this only affects stub parsing, not what's accepted.
+python_version = "3.12"
+files = ["src"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "rdkit.*"
+ignore_missing_imports = true
+
+# numpy's operator-overload stubs collapse chained uint64 array arithmetic
+# (xor/shift/mul with scalars) to narrower-than-actual types in these two
+# modules' low-level bit hashing; the errors are stub-inference artifacts, not
+# real bugs. Silencing only the specific noisy codes here keeps real errors
+# (typos, wrong arg types, etc.) caught in the rest of the package.
+[[tool.mypy.overrides]]
+module = ["fpsketch.sketching", "fpsketch._splitmix"]
+disable_error_code = ["index", "operator", "attr-defined", "return-value"]
