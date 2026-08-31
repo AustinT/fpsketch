@@ -23,6 +23,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/AustinT/fpsketch"
 Repository = "https://github.com/AustinT/fpsketch"
+Changelog = "https://github.com/AustinT/fpsketch/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 chem = ["rdkit>=2023.9"]
