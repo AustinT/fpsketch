@@ -345,21 +345,32 @@ def _encode_core(
             this_block_length += dim % num_blocks  # add remainder to last block
 
         # Hash step 3: XOR fp_keys with the appropriate seed_block_keys.
-        # The function f(a) = a XOR b (for a constant b) is bijective,
-        # so distinct fp_keys are guaranteed to map to distinct outputs.
-        # We call these "pre*" because we will hash again in step 4
-        this_block_col_key = seed_block_keys[2 * block_idx]
-        this_block_sign_key = seed_block_keys[2 * block_idx + 1]
-        pre_col_fp_hash = fp_keys ^ this_block_col_key
-        pre_sign_fp_hash = fp_keys ^ this_block_sign_key
-
-        # Hash step 4: although we could use the pre-hashes directly
-        # as the hash, they are arguably not independent enough between
+        #
+        # Motivation: we want 2 different independent hash functions for
+        # every block (sign and column hashes) which also depend on the seed.
+        # But we only have one "actual" hash function (splitmix).
+        # So, we will use the (seed, block) id to create a separate function
+        # g (unique to each seed+block combo), then use the hash
+        # splitmix(g(x)). We choose g(x) = x XOR seed_block_key.
+        # This is because the function x XOR b is bijective wrt x,
+        # so distinct inputs are guaranteed to map to distinct outputs.
+        # We compute g(key) under the name pre*hash, and will hash
+        # again in step 4.
+        #
+        # NB: it might appear that we could use g(x) directly as the hash.
+        # However, they are arguably not independent enough between
         # blocks. For example, we will only use one bit of the sign hash,
         # and if that bit happens to match between 2 block keys then *all*
         # the signs will match between those two blocks. To avoid this,
         # we re-hash the pre-hashes with splitmix, so differences cascade
         # more uniformly to all the bits.
+        this_block_col_key = seed_block_keys[2 * block_idx]
+        this_block_sign_key = seed_block_keys[2 * block_idx + 1]
+        pre_col_fp_hash = fp_keys ^ this_block_col_key
+        pre_sign_fp_hash = fp_keys ^ this_block_sign_key
+
+        # Hash step 4: re-hash with splitmix.
+        # Motivation explained above.
         col_hash = _splitmix64_hash(pre_col_fp_hash)
         sign_hash = _splitmix64_hash(pre_sign_fp_hash)
 
