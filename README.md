@@ -129,3 +129,10 @@ publisher for this repo in the PyPI project settings first.
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+## Citation
+
+If you use `fpsketch` in your work, you can cite this repo or the blog post:
+<https://www.austintripp.ca/blog/2026-08-31-fpsketch/>.
+
+I will probably follow this up with a paper soon.
